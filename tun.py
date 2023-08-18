@@ -10,6 +10,7 @@ import time
 from concurrent.futures.thread import ThreadPoolExecutor
 from fcntl import ioctl
 from ipaddress import IPv4Address
+import re
 
 LOGGER.basicConfig(level=LOGGER.DEBUG)
 
@@ -17,19 +18,26 @@ _UNIX_TUNSETIFF = 0x400454ca
 _UNIX_IFF_TUN = 0x0001
 _UNIX_IFF_NO_PI = 0x1000
 
+SERVER_IP = "142.251.36.36"
+TUN_NAME = "cutom-tunnel"
+
+
+def run(cmd: str):
+    return subprocess.check_output(cmd.split()).decode()
+
 
 class TUNInterface:
-
     def __init__(self, name: str, address: IPv4Address):
         self._name = name
         self._address = address
 
         # Create TUN interface.
         self._descriptor = os.open('/dev/net/tun', os.O_RDWR)
-        ioctl(self._descriptor,
-              _UNIX_TUNSETIFF,
-              struct.pack('16sH', name.encode('ASCII'), _UNIX_IFF_TUN | _UNIX_IFF_NO_PI)
-              )
+        ioctl(
+            self._descriptor,
+            _UNIX_TUNSETIFF,
+            struct.pack('16sH', name.encode('ASCII'), _UNIX_IFF_TUN | _UNIX_IFF_NO_PI)
+        )
 
         # Assign address to interface.
         subprocess.call(['/sbin/ip', 'addr', 'add', str(address), 'dev', name])
@@ -45,24 +53,10 @@ class TUNInterface:
     def up(self) -> None:
         # Put interface into "up" state.
         subprocess.call(['/sbin/ip', 'link', 'set', 'dev', self._name, 'up'])
-
-        # store existing default route
-        self.existing_default_route = subprocess.check_output(["/sbin/ip", "route", "show", "default", "0.0.0.0/0"]).decode()
-
-        # Intercept outgoing packets.
-        if self.existing_default_route:
-            # add default route
-            print("replace default:", self.existing_default_route)
-            subprocess.call(['/sbin/ip', 'route', 'replace', 'default', 'dev', self._name])
-        else:
-            # replace default route
-            subprocess.call(['/sbin/ip', 'route', 'add', 'default', 'dev', self._name])
+        self.setup_route_table()
 
     def down(self) -> None:
-        if self.existing_default_route:
-            print("restore default route")
-            subprocess.call(['/sbin/ip', 'route', 'replace', *self.existing_default_route.split()])
-
+        self.cleanup_route_table()
 
     def read(self, number_bytes: int) -> bytes:
         packet = os.read(self._descriptor, number_bytes)
@@ -72,10 +66,33 @@ class TUNInterface:
     def write(self, packet: bytes) -> None:
         LOGGER.debug('Writing %s bytes to %s: %s', len(packet), self.name, packet[:10])
         os.write(self._descriptor, packet)
+    
+    def setup_route_table(self):
+        # enable packet forwarding on host
+        run("/usr/sbin/sysctl -w net.ipv4.ip_forward=1");
+
+        # get old gateway ip addr
+        old_default_route = run("ip route show 0/0")
+
+        ipv4 = r"((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}"
+        old_gateway_ip_addr = re.search(ipv4, old_default_route)
+
+        # add route to vpn server through old gateway ip
+        run(f"ip route add {SERVER_IP} via {old_gateway_ip_addr[0]}")
+
+        # add default route for all trafic through our tun interface
+        run(f"ip route add 0/1 dev {self._name}");
+        run(f"ip route add 128/1 dev {self._name}");
+    
+    def cleanup_route_table(self):
+        run(f"ip route del {SERVER_IP}");
+        run("ip route del 0/1");
+        run("ip route del 128/1");
 
 
 def test() -> None:
-    interface = TUNInterface('custom-tunnel', address=IPv4Address('10.1.0.0'))
+    interface = TUNInterface(TUN_NAME, address=IPv4Address('10.1.0.0'))
+
     try:
         interface.up()
 
