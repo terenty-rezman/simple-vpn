@@ -20,7 +20,7 @@ _UNIX_TUNSETIFF = 0x400454ca
 _UNIX_IFF_TUN = 0x0001
 _UNIX_IFF_NO_PI = 0x1000
 
-SERVER_ADDR = "tech.divid.team"
+SERVER_ADDR = "38.242.223.247"
 SERVER_UDP_PORT = 12000
 
 TUN_NAME = "custom-tunnel"
@@ -45,6 +45,14 @@ class TUNInterface:
 
         # Assign address to interface.
         subprocess.call(['/sbin/ip', 'addr', 'add', str(address), 'dev', name])
+
+    @property    
+    def name(self):
+        return self._name
+
+    @property    
+    def address(self):
+        return self._address
 
     def up(self) -> None:
         # Put interface into "up" state.
@@ -87,9 +95,9 @@ class TUNInterface:
 
 
 def create_udp_socket():
-    socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    socket.settimeout(1.0)
-    return socket 
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(1.0)
+    return s
 
 
 def test() -> None:
