@@ -11,6 +11,8 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from fcntl import ioctl
 from ipaddress import IPv4Address
 import re
+import time
+import socket
 
 LOGGER.basicConfig(level=LOGGER.DEBUG)
 
@@ -18,8 +20,10 @@ _UNIX_TUNSETIFF = 0x400454ca
 _UNIX_IFF_TUN = 0x0001
 _UNIX_IFF_NO_PI = 0x1000
 
-SERVER_IP = "142.251.36.36"
-TUN_NAME = "cutom-tunnel"
+SERVER_ADDR = "tech.divid.team"
+SERVER_UDP_PORT = 12000
+
+TUN_NAME = "custom-tunnel"
 
 
 def run(cmd: str):
@@ -41,14 +45,6 @@ class TUNInterface:
 
         # Assign address to interface.
         subprocess.call(['/sbin/ip', 'addr', 'add', str(address), 'dev', name])
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def address(self) -> IPv4Address:
-        return self._address
 
     def up(self) -> None:
         # Put interface into "up" state.
@@ -78,26 +74,37 @@ class TUNInterface:
         old_gateway_ip_addr = re.search(ipv4, old_default_route)
 
         # add route to vpn server through old gateway ip
-        run(f"ip route add {SERVER_IP} via {old_gateway_ip_addr[0]}")
+        run(f"ip route add {SERVER_ADDR} via {old_gateway_ip_addr[0]}")
 
         # add default route for all trafic through our tun interface
         run(f"ip route add 0/1 dev {self._name}");
         run(f"ip route add 128/1 dev {self._name}");
     
     def cleanup_route_table(self):
-        run(f"ip route del {SERVER_IP}");
+        run(f"ip route del {SERVER_ADDR}");
         run("ip route del 0/1");
         run("ip route del 128/1");
 
 
+def create_udp_socket():
+    socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    socket.settimeout(1.0)
+    return socket 
+
+
 def test() -> None:
+    to_server = create_udp_socket()
+    server_addr = (SERVER_ADDR, SERVER_UDP_PORT)
+
     interface = TUNInterface(TUN_NAME, address=IPv4Address('10.1.0.0'))
 
     try:
         interface.up()
 
         while time.sleep(0.01) is None:
-            interface.read(1024)
+            packet = interface.read(1024)
+            to_server.sendto(packet, server_addr)
+
     except KeyboardInterrupt:
         pass
     finally:
