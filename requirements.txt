@@ -1,0 +1,2 @@
+pypacker==5.4 ; python_version >= "3.8" and python_version < "4.0" \
+    --hash=sha256:80fb794acbe9eb972e43b4b28e85d8899ea3637fa5461df2866736e6d99ea5a3

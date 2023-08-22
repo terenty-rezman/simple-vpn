@@ -13,6 +13,12 @@ from ipaddress import IPv4Address
 import re
 import time
 import socket
+from typing import Union
+
+from pypacker.layer3.ip import IP as IPv4Packet
+from pypacker.layer3.ip6 import IP6 as IPv6Packet
+
+from utils import run, parse_packet
 
 LOGGER.basicConfig(level=LOGGER.DEBUG)
 
@@ -24,10 +30,6 @@ SERVER_ADDR = "38.242.223.247"
 SERVER_UDP_PORT = 12000
 
 TUN_NAME = "custom-tunnel"
-
-
-def run(cmd: str):
-    return subprocess.check_output(cmd.split()).decode()
 
 
 class TUNInterface:
@@ -64,12 +66,12 @@ class TUNInterface:
 
     def read(self, number_bytes: int) -> bytes:
         packet = os.read(self._descriptor, number_bytes)
-        LOGGER.debug('Read %d bytes from %s: %s', len(packet), self.name, packet[:10])
+        # LOGGER.debug('Read %d bytes from %s: %s', len(packet), self.name, packet[:10])
         return packet
 
     def write(self, packet: bytes) -> None:
         LOGGER.debug('Writing %s bytes to %s: %s', len(packet), self.name, packet[:10])
-        os.write(self._descriptor, packet)
+        # os.write(self._descriptor, packet)
     
     def setup_route_table(self):
         # enable packet forwarding on host
@@ -111,6 +113,8 @@ def test() -> None:
 
         while time.sleep(0.01) is None:
             packet = interface.read(1024)
+            parsed_packet = parse_packet(packet)
+            print(parsed_packet)
             to_server.sendto(packet, server_addr)
 
     except KeyboardInterrupt:
