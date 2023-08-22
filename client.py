@@ -8,11 +8,10 @@ from ipaddress import IPv4Address
 import re
 import time
 import socket
-
-import aiofiles
+import asyncio
 
 from utils import run, parse_packet
-from tun import TUNInterface, test_tun
+from tun import TUNInterface
 
 LOGGER.basicConfig(level=LOGGER.DEBUG)
 
@@ -55,16 +54,16 @@ def create_udp_socket():
     return s
 
 
-def test() -> None:
+async def test() -> None:
     to_server = create_udp_socket()
     server_addr = (SERVER_ADDR, SERVER_UDP_PORT)
 
-    interface = TUNInterface(TUN_IF_NAME, address=IPv4Address(TUN_IF_ADDRESS))
+    interface = await TUNInterface(TUN_IF_NAME, address=IPv4Address(TUN_IF_ADDRESS))
     setup_route_table()
 
     try:
-        while time.sleep(0.01) is None:
-            packet = interface.read(1024)
+        while True:
+            packet = await interface.read(1024)
             parsed_packet = parse_packet(packet)
             print(parsed_packet)
             to_server.sendto(packet, server_addr)
@@ -76,17 +75,7 @@ def test() -> None:
 
 
 if __name__ == '__main__':
-    import asyncio
-
-    async def test_async():
-        tun = await test_tun()
-        setup_route_table("TEST-TUN")
-
-        d = await tun.read(1024)
-        print(d)
-
-        cleanup_route_table()
     
-    asyncio.run(test_async())
+    asyncio.run(test())
         
     # test()
