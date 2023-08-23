@@ -61,12 +61,6 @@ def cleanup_route_table(server_ip_address):
     run("ip route del 128/1");
 
 
-def create_udp_socket():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(1.0)
-    return s
-
-
 async def tun_writer(tun_interface, ws_socket):
     while True:
         message = await ws_socket.recv()

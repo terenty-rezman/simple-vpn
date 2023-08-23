@@ -2,44 +2,64 @@ import socket
 from time import sleep
 from ipaddress import IPv4Address
 import asyncio
+from functools import partial
 
 import websockets
 
-from utils import parse_packet
-from tun import TUNInterface
+from utils import parse_packet, run
+from tun import create_tun
 
-VPN_SERVER_PORT = 12000
 
 # tun interface config
 TUN_IF_NAME = "custom-tunnel"
-TUN_IF_ADDRESS = '10.1.0.2/24'
+TUN_IF_ADDRESS = '10.1.0.2'
 
 
-async def echo(websocket):
-    async for message in websocket:
-        print(message)
-        await websocket.send(message)
+def setup_route_table(interface_name, server_ip_addr):
+    run("iptables -t nat -A POSTROUTING -s 10.1.0.0/24 ! -d 10.1.0.0/24 -m comment --comment 'vpndemo' -j MASQUERADE");
+    run("iptables -A FORWARD -s 10.1.0.0/24 -m state --state RELATED,ESTABLISHED -j ACCEPT");
+    run("iptables -A FORWARD -d 10.1.0.0/24 -j ACCEPT");
+
+
+def cleanup_route_table(server_ip_address):
+    run("iptables -t nat -D POSTROUTING -s 10.1.0.0/24 ! -d 10.1.0.0/24 -m comment --comment 'vpndemo' -j MASQUERADE");
+    run("iptables -D FORWARD -s 10.1.0.0/24 -m state --state RELATED,ESTABLISHED -j ACCEPT");
+    run("iptables -D FORWARD -d 10.1.0.0/24 -j ACCEPT");
+
+
+async def handle_client(tun_interface, websocket):
+    await asyncio.gather(
+        tun_reader(tun_interface, websocket),
+        tun_writer(tun_interface, websocket)
+    )
+
+async def tun_writer(tun_interface, ws_socket):
+    while True:
+        message = await ws_socket.recv()
+        print("received", message)
+        await tun_interface.write(message)
+
+
+async def tun_reader(tun_interface, ws_socket):
+    while True:
+        packet = await tun_interface.read(1024)
+        parsed_packet = parse_packet(packet)
+        print(parsed_packet)
+        await ws_socket.send(packet)
 
 
 async def ws_server():
-    async with websockets.serve(echo, "0.0.0.0", 8777):
-        print("listening...")
-        await asyncio.Future()  # run forever
+    try:
+        tun_interface = create_tun(TUN_IF_NAME, IPv4Address(TUN_IF_ADDRESS))
+        setup_route_table()
 
-
-def udp_server():
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind(('', VPN_SERVER_PORT))
-    print("Server listening on UDP port", VPN_SERVER_PORT)
-
-    interface = TUNInterface(TUN_IF_NAME, address=IPv4Address(TUN_IF_ADDRESS))
-
-    while sleep(0.01) is None:
-        message, address = server_socket.recvfrom(1024)
-
-        parsed_packet = parse_packet(message)
-
-        print(parsed_packet)
+        async with websockets.serve(partial(handle_client, tun_interface), "0.0.0.0", 8777):
+            print("listening...")
+            await asyncio.Future()  # run forever
+    except KeyboardInterrupt:
+        pass
+    finally:
+        cleanup_route_table()
 
 
 if __name__ == "__main__":
