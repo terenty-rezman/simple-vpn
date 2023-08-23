@@ -10,6 +10,8 @@ import time
 import socket
 import asyncio
 
+import websockets
+
 from utils import run, parse_packet
 from tun import TUNInterface
 
@@ -74,8 +76,12 @@ async def test() -> None:
         cleanup_route_table()
 
 
+async def ws_client():
+    async with websockets.connect("ws://tech.divid.team:8765") as websocket:
+        await websocket.send("Hello world!")
+        message = await websocket.recv()
+        print(f"Received: {message}")
+
+
 if __name__ == '__main__':
-    
-    asyncio.run(test())
-        
-    # test()
+    asyncio.run(ws_client())
