@@ -54,11 +54,19 @@ def setup_route_table(interface_name, server_ip_addr):
     run(f"ip route add 0/1 dev {interface_name}");
     run(f"ip route add 128/1 dev {interface_name}");
 
+    run("iptables -t nat -A POSTROUTING -o tun0 -j MASQUERADE");
+    run("iptables -I FORWARD 1 -i tun0 -m state --state RELATED,ESTABLISHED -j ACCEPT");
+    run("iptables -I FORWARD 1 -o tun0 -j ACCEPT");
+
 
 def cleanup_route_table(server_ip_address):
     run(f"ip route del {server_ip_address}");
     run("ip route del 0/1");
     run("ip route del 128/1");
+
+    run("iptables -t nat -D POSTROUTING -o tun0 -j MASQUERADE");
+    run("iptables -D FORWARD -i tun0 -m state --state RELATED,ESTABLISHED -j ACCEPT");
+    run("iptables -D FORWARD -o tun0 -j ACCEPT");
 
 
 async def tun_writer(tun_interface, ws_socket):

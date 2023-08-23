@@ -35,11 +35,9 @@ class TUNInterface:
 
     async def read(self, number_bytes: int) -> bytes:
         packet = await self._tun.read(number_bytes)
-        # LOGGER.debug('Read %d bytes from %s: %s', len(packet), self._name, packet[:10])
         return packet
 
     async def write(self, packet: bytes) -> None:
-        # LOGGER.debug('Writing %s bytes to %s: %s', len(packet), self._name, packet[:10])
         await self._tun.write(packet)
 
 

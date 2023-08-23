@@ -32,9 +32,10 @@ async def handle_client(tun_interface, websocket):
 
 async def tun_writer(tun_interface, ws_socket):
     while True:
-        message = await ws_socket.recv()
-        print("WRITE TO TUN", message)
-        await tun_interface.write(message)
+        packet = await ws_socket.recv()
+        parsed_packet = parse_packet(packet)
+        print("WRITE TO TUN", parsed_packet)
+        await tun_interface.write(packet)
 
 
 async def tun_reader(tun_interface, ws_socket):
