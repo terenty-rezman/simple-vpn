@@ -17,11 +17,13 @@ TUN_IF_ADDRESS = '10.1.0.2/24'
 
 async def echo(websocket):
     async for message in websocket:
+        print(message)
         await websocket.send(message)
 
 
 async def ws_server():
-    async with websockets.serve(echo, "localhost", 8765):
+    async with websockets.serve(echo, "0.0.0.0", 8777):
+        print("listening...")
         await asyncio.Future()  # run forever
 
 

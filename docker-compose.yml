@@ -1,0 +1,13 @@
+version: '3'
+services:
+        myvpn:
+                build: .
+                expose:
+                        - "8888"
+                networks:
+                        - divid_net
+
+networks:
+        divid_net:
+                external: true
+                name: divid-net # attach to swarm network
