@@ -23,7 +23,7 @@ SERVER_ADDR = "ws://tech.divid.team:8777"
 
 # tun interface config
 TUN_IF_NAME = "custom-tunnel"
-TUN_IF_ADDRESS = '10.1.0.1'
+TUN_IF_ADDRESS = '10.1.0.1/24'
 
 
 def resolve_ip_address(addr: str):
@@ -82,7 +82,7 @@ async def main():
 
         ws_to_server = await websockets.connect(SERVER_ADDR)
 
-        tun_interface = await create_tun(TUN_IF_NAME, IPv4Address(TUN_IF_ADDRESS))
+        tun_interface = await create_tun(TUN_IF_NAME, TUN_IF_ADDRESS)
         setup_route_table(TUN_IF_NAME, server_ip_addr)
 
         await asyncio.gather(

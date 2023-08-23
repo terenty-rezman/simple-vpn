@@ -1,6 +1,3 @@
-import socket
-from time import sleep
-from ipaddress import IPv4Address
 import asyncio
 from functools import partial
 
@@ -12,7 +9,7 @@ from tun import create_tun
 
 # tun interface config
 TUN_IF_NAME = "custom-tunnel"
-TUN_IF_ADDRESS = '10.1.0.2'
+TUN_IF_ADDRESS = '10.1.0.2/24'
 
 
 def setup_route_table(interface_name):
@@ -50,7 +47,7 @@ async def tun_reader(tun_interface, ws_socket):
 
 async def ws_server():
     try:
-        tun_interface = await create_tun(TUN_IF_NAME, IPv4Address(TUN_IF_ADDRESS))
+        tun_interface = await create_tun(TUN_IF_NAME, TUN_IF_ADDRESS)
         setup_route_table(TUN_IF_ADDRESS)
 
         async with websockets.serve(partial(handle_client, tun_interface), "0.0.0.0", 8777):

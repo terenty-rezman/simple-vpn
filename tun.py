@@ -1,5 +1,3 @@
-from ipaddress import IPv4Address
-import os
 import struct
 import subprocess
 from fcntl import ioctl
@@ -13,7 +11,7 @@ _UNIX_IFF_NO_PI = 0x1000
 
 
 class TUNInterface:
-    def __init__(self, name: str, address: IPv4Address):
+    def __init__(self, name: str, address: str):
         self._name = name
         self._address = address
     
@@ -30,7 +28,7 @@ class TUNInterface:
         )
 
         # Assign address to interface.
-        subprocess.call(['/sbin/ip', 'addr', 'add', str(self._address), 'dev', self._name])
+        subprocess.call(['/sbin/ip', 'addr', 'add', self._address, 'dev', self._name])
 
         # up interface
         subprocess.call(['/sbin/ip', 'link', 'set', 'dev', self._name, 'up'])
@@ -45,7 +43,7 @@ class TUNInterface:
         await self._tun.write(packet)
 
 
-async def create_tun(name: str, address: IPv4Address) -> TUNInterface:
+async def create_tun(name: str, address: str) -> TUNInterface:
     tun = TUNInterface(name, address)
     await tun.init()
     return tun
