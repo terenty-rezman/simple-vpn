@@ -6,6 +6,7 @@ from pypacker.layer3.ip6 import IP6 as IPv6Packet
 
 
 def run(cmd: str):
+    print(cmd)
     return subprocess.check_output(cmd.split()).decode()
 
 
