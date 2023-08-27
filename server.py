@@ -2,10 +2,12 @@ import asyncio
 from functools import partial
 
 import websockets
+from websockets.server import WebSocketServerProtocol
 
-from utils import parse_packet, run
-from tun import create_tun
+from utils import parse_packet, run, print_packet
+from tun import create_tun, TUNInterface
 
+LISTEN_PORT = 8777
 
 # tun interface config
 TUN_IF_NAME = "custom-tunnel"
@@ -32,12 +34,12 @@ def cleanup_route_table():
     # run("iptables -D DOCKER-USER -j ACCEPT");
 
 
-async def handle_client(tun_interface, websocket):
+async def handle_client(tun_interface: TUNInterface, websocket: WebSocketServerProtocol):
+    print("client connected")
     await asyncio.gather(
         tun_reader(tun_interface, websocket),
         tun_writer(tun_interface, websocket)
     )
-
 
 
 from pypacker.layer3 import icmp
@@ -50,23 +52,19 @@ async def send_icmp(tun):
     await tun.write(ping.bin())
 
 
-
-async def tun_writer(tun_interface, ws_socket):
+async def tun_writer(tun_interface: TUNInterface, ws_socket: WebSocketServerProtocol):
     while True:
         packet = await ws_socket.recv()
         parsed_packet = parse_packet(packet)
-        if not parsed_packet[ip.ip6.IP6] and parsed_packet[ip.tcp.TCP]:
-            print("CLIENT:", parsed_packet.src_s, "->", parsed_packet.dst_s, parsed_packet.len) 
-        await tun_interface.write(packet)
-         
+        print_packet("CLIENT:", parsed_packet)
+        await tun_interface.write_packet(packet)
 
 
-async def tun_reader(tun_interface, ws_socket):
+async def tun_reader(tun_interface: TUNInterface, ws_socket: WebSocketServerProtocol):
     while True:
-        packet = await tun_interface.read(1024)
+        packet = await tun_interface.read_packet()
         parsed_packet = parse_packet(packet)
-        if not parsed_packet[ip.ip6.IP6] and parsed_packet[ip.tcp.TCP]:
-            print("TUN:", parsed_packet.src_s, "->", parsed_packet.dst_s, parsed_packet.len)
+        print_packet("TUN:", parsed_packet)
         await ws_socket.send(packet)
 
 
@@ -75,7 +73,10 @@ async def ws_server():
         tun_interface = await create_tun(TUN_IF_NAME, TUN_IF_ADDRESS)
         setup_route_table(TUN_IF_ADDRESS)
 
-        async with websockets.serve(partial(handle_client, tun_interface), "0.0.0.0", 8777):
+        async with websockets.serve(
+                partial(handle_client, tun_interface), 
+                "0.0.0.0", LISTEN_PORT
+            ):
             print("listening...")
             await asyncio.Future()  # run forever
     except KeyboardInterrupt:

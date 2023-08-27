@@ -11,10 +11,11 @@ import socket
 import asyncio
 
 import websockets
+from websockets.client import WebSocketClientProtocol
 from pypacker.layer3 import ip
 
-from utils import run, parse_packet
-from tun import create_tun
+from utils import run, parse_packet, print_packet
+from tun import create_tun, TUNInterface
 
 LOGGER.basicConfig(level=LOGGER.INFO)
 
@@ -71,41 +72,31 @@ def cleanup_route_table(server_ip_address):
     run("iptables -D FORWARD -o tun0 -j ACCEPT");
 
 
-async def tun_writer(tun_interface, ws_socket):
+async def tun_writer(tun_interface: TUNInterface, ws_socket: WebSocketClientProtocol):
     while True:
         packet = await ws_socket.recv()
         parsed_packet = parse_packet(packet)
-        if not parsed_packet[ip.ip6.IP6] and parsed_packet[ip.tcp.TCP]:
-            print(
-                "SERVER:", parsed_packet.src_s, "->", parsed_packet.dst_s, 
-                parsed_packet[ip.tcp.TCP].flags_t,
-                # parsed_packet.highest_layer.body_bytes or ""
-                parsed_packet.len
-            )
-        await tun_interface.write(packet)
+        print_packet("SERVER:", parsed_packet)
+        await tun_interface.write_packet(packet)
 
 
-async def tun_reader(tun_interface, ws_socket):
+async def tun_reader(tun_interface: TUNInterface, ws_socket: WebSocketClientProtocol):
     while True:
-        packet = await tun_interface.read(1024)
+        packet = await tun_interface.read_packet()
         parsed_packet = parse_packet(packet)
-        if not parsed_packet[ip.ip6.IP6] and parsed_packet[ip.tcp.TCP]:
-            print(
-                "TUN:", parsed_packet.src_s, "->", parsed_packet.dst_s,
-                parsed_packet[ip.tcp.TCP].flags_t,
-                parsed_packet.len
-                # parsed_packet.highest_layer.body_bytes or ""
-            )
+        print_packet("TUN:", parsed_packet)
         await ws_socket.send(packet)
 
 
 async def main():
     try:
+        server_ip_addr = resolve_ip_address(SERVER_ADDR) 
+
         tun_interface = await create_tun(TUN_IF_NAME, TUN_IF_ADDRESS)
         setup_route_table(TUN_IF_NAME, server_ip_addr)
 
-        server_ip_addr = resolve_ip_address(SERVER_ADDR) 
         ws_to_server = await websockets.connect(SERVER_ADDR)
+        print("connected to server")
 
         await asyncio.gather(
             tun_reader(tun_interface, ws_to_server),

@@ -36,12 +36,12 @@ class TUNInterface:
         # up interface
         run(f"/sbin/ip link set dev {self._name} up")
 
-    async def read(self, number_bytes: int) -> bytes:
-        packet = await self._tun.read(number_bytes)
+    async def read_packet(self) -> bytes:
+        packet = await self._tun.readall()
         return packet
 
-    async def write(self, packet: bytes) -> None:
-        await self._tun.write(packet)
+    async def write_packet(self, packet: bytes) -> int:
+        return await self._tun.write(packet)
 
 
 async def create_tun(name: str, address: str) -> TUNInterface:

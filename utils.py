@@ -3,6 +3,7 @@ import subprocess
 
 from pypacker.layer3.ip import IP as IPv4Packet
 from pypacker.layer3.ip6 import IP6 as IPv6Packet
+from pypacker import ip
 
 
 def run(cmd: str):
@@ -27,3 +28,13 @@ def parse_packet(data: bytes) -> Union[IPv4Packet, IPv6Packet]:
         raise ValueError(f'Unsupported IP packet version: {packet_ver}')
 
     return packet
+
+
+def print_packet(packet: Union[IPv4Packet, IPv6Packet], prefix=None):
+    if packet[ip.tcp.TCP] and not packet[ip.ip6.IP6]:
+        print(
+            prefix or "", packet.src_s, "->", packet.dst_s, 
+            packet[ip.tcp.TCP].flags_t,
+            # parsed_packet.highest_layer.body_bytes or ""
+            packet.len
+        )
