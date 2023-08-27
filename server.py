@@ -20,7 +20,7 @@ def setup_route_table(interface_name):
     run("iptables -A FORWARD -s 10.1.0.0/24 -m state --state RELATED,ESTABLISHED -j ACCEPT");
     run("iptables -A FORWARD -d 10.1.0.0/24 -j ACCEPT");
 
-    run("iptables -I DOCKER-USER -j ACCEPT");
+    # run("iptables -I DOCKER-USER -j ACCEPT");
 
 
 def cleanup_route_table():
@@ -29,7 +29,7 @@ def cleanup_route_table():
     run("iptables -D FORWARD -s 10.1.0.0/24 -m state --state RELATED,ESTABLISHED -j ACCEPT");
     run("iptables -D FORWARD -d 10.1.0.0/24 -j ACCEPT");
 
-    run("iptables -D DOCKER-USER -j ACCEPT");
+    # run("iptables -D DOCKER-USER -j ACCEPT");
 
 
 async def handle_client(tun_interface, websocket):
@@ -55,8 +55,9 @@ async def tun_writer(tun_interface, ws_socket):
     while True:
         packet = await ws_socket.recv()
         parsed_packet = parse_packet(packet)
-        print("WRITE TO TUN", parsed_packet.src_s, parsed_packet.dst_s) 
-        await tun_interface.write(parsed_packet.bin())
+        if not parsed_packet[ip.ip6.IP6] and parsed_packet[ip.tcp.TCP]:
+            print("CLIENT:", parsed_packet.src_s, "->", parsed_packet.dst_s, parsed_packet.len) 
+        await tun_interface.write(packet)
          
 
 
@@ -64,7 +65,8 @@ async def tun_reader(tun_interface, ws_socket):
     while True:
         packet = await tun_interface.read(1024)
         parsed_packet = parse_packet(packet)
-        print("READ FROM TUN", parsed_packet)
+        if not parsed_packet[ip.ip6.IP6] and parsed_packet[ip.tcp.TCP]:
+            print("TUN:", parsed_packet.src_s, "->", parsed_packet.dst_s, parsed_packet.len)
         await ws_socket.send(packet)
 
 
