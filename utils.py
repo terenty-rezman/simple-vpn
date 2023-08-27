@@ -3,7 +3,7 @@ import subprocess
 
 from pypacker.layer3.ip import IP as IPv4Packet
 from pypacker.layer3.ip6 import IP6 as IPv6Packet
-from pypacker import ip
+from pypacker.layer3 import ip
 
 
 def run(cmd: str):
