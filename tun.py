@@ -37,7 +37,7 @@ class TUNInterface:
         run(f"/sbin/ip link set dev {self._name} up")
 
     async def read_packet(self) -> bytes:
-        packet = await self._tun.readall()
+        packet = await self._tun.read(MTU)
         return packet
 
     async def write_packet(self, packet: bytes) -> int:

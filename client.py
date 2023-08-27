@@ -76,7 +76,7 @@ async def tun_writer(tun_interface: TUNInterface, ws_socket: WebSocketClientProt
     while True:
         packet = await ws_socket.recv()
         parsed_packet = parse_packet(packet)
-        print_packet("SERVER:", parsed_packet)
+        print_packet(parsed_packet, "SERVER:")
         await tun_interface.write_packet(packet)
 
 
@@ -84,7 +84,7 @@ async def tun_reader(tun_interface: TUNInterface, ws_socket: WebSocketClientProt
     while True:
         packet = await tun_interface.read_packet()
         parsed_packet = parse_packet(packet)
-        print_packet("TUN:", parsed_packet)
+        print_packet(parsed_packet, "TUN:")
         await ws_socket.send(packet)
 
 
