@@ -4,7 +4,9 @@ from fcntl import ioctl
 
 import aiofiles
 
+from utils import run
 
+MTU = 1400
 _UNIX_TUNSETIFF = 0x400454ca
 _UNIX_IFF_TUN = 0x0001
 _UNIX_IFF_NO_PI = 0x1000
@@ -28,10 +30,11 @@ class TUNInterface:
         )
 
         # Assign address to interface.
-        subprocess.call(['/sbin/ip', 'addr', 'add', self._address, 'dev', self._name])
+        run(f"/sbin/ip addr add {self._address} dev {self._name}")
+        run(f"/sbin/ip link set dev {self._name} mtu {MTU}")
 
         # up interface
-        subprocess.call(['/sbin/ip', 'link', 'set', 'dev', self._name, 'up'])
+        run(f"/sbin/ip link set dev {self._name} up")
 
     async def read(self, number_bytes: int) -> bytes:
         packet = await self._tun.read(number_bytes)
