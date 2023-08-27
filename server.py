@@ -4,7 +4,7 @@ from functools import partial
 import websockets
 from websockets.server import WebSocketServerProtocol
 
-from utils import parse_packet, run, print_packet
+from utils import parse_packet, run, print_packet, install_ctrl_c_handler
 from tun import create_tun, TUNInterface
 
 LISTEN_PORT = 8777
@@ -42,16 +42,6 @@ async def handle_client(tun_interface: TUNInterface, websocket: WebSocketServerP
     )
 
 
-from pypacker.layer3 import icmp
-from pypacker.layer3 import ip
-async def send_icmp(tun):
-    ping = ip.IP(src_s="10.1.0.1", dst_s="8.8.8.8", p=1) +\
-        icmp.ICMP(type=8) +\
-        icmp.ICMP.Echo(id=123, seq=1)
-
-    await tun.write(ping.bin())
-
-
 async def tun_writer(tun_interface: TUNInterface, ws_socket: WebSocketServerProtocol):
     while True:
         packet = await ws_socket.recv()
@@ -70,6 +60,8 @@ async def tun_reader(tun_interface: TUNInterface, ws_socket: WebSocketServerProt
 
 async def ws_server():
     try:
+        install_ctrl_c_handler()
+
         tun_interface = await create_tun(TUN_IF_NAME, TUN_IF_ADDRESS)
         setup_route_table(TUN_IF_ADDRESS)
 
@@ -80,6 +72,8 @@ async def ws_server():
             print("listening...")
             await asyncio.Future()  # run forever
     except KeyboardInterrupt:
+        pass
+    except asyncio.CancelledError:
         pass
     finally:
         cleanup_route_table()

@@ -3,18 +3,13 @@
 Based on: https://github.com/povilasb/iptun/blob/master/iptun/tun.py
 """
 import logging as LOGGER
-import time
-from ipaddress import IPv4Address
 import re
-import time
-import socket
 import asyncio
 
 import websockets
 from websockets.client import WebSocketClientProtocol
-from pypacker.layer3 import ip
 
-from utils import run, parse_packet, print_packet
+from utils import run, parse_packet, print_packet, install_ctrl_c_handler, resolve_ip_address
 from tun import create_tun, TUNInterface
 
 LOGGER.basicConfig(level=LOGGER.INFO)
@@ -27,17 +22,6 @@ SERVER_ADDR = "ws://79.143.31.251:8777"
 # tun interface config
 TUN_IF_NAME = "custom-tunnel"
 TUN_IF_ADDRESS = '10.1.0.2/24'
-
-
-def resolve_ip_address(addr: str):
-    # remove scheme
-    addr = re.sub("^\w*://", "", addr)
-    # remove port
-    addr = re.sub(":\d+$", "", addr)
-    # resolve if domain name 
-    if any(letter.isalpha() for letter in addr):
-        addr = socket.gethostbyname_ex(addr)[2][0]
-    return addr
 
 
 def setup_route_table(interface_name, server_ip_addr):
@@ -90,6 +74,8 @@ async def tun_reader(tun_interface: TUNInterface, ws_socket: WebSocketClientProt
 
 async def main():
     try:
+        install_ctrl_c_handler()
+
         server_ip_addr = resolve_ip_address(SERVER_ADDR) 
 
         tun_interface = await create_tun(TUN_IF_NAME, TUN_IF_ADDRESS)
@@ -104,8 +90,11 @@ async def main():
         )
     except KeyboardInterrupt:
         pass
+    except asyncio.CancelledError:
+        pass
     finally:
         cleanup_route_table(server_ip_addr)
+        print("stopping...")
 
 
 if __name__ == '__main__':

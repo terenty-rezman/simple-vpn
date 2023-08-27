@@ -1,5 +1,8 @@
 from typing import Union
 import subprocess
+import asyncio
+import re
+from signal import SIGINT, SIGTERM
 
 from pypacker.layer3.ip import IP as IPv4Packet
 from pypacker.layer3.ip6 import IP6 as IPv6Packet
@@ -38,3 +41,21 @@ def print_packet(packet: Union[IPv4Packet, IPv6Packet], prefix=None):
             # parsed_packet.highest_layer.body_bytes or ""
             packet.len
         )
+
+
+def resolve_ip_address(addr: str):
+    # remove scheme
+    addr = re.sub("^\w*://", "", addr)
+    # remove port
+    addr = re.sub(":\d+$", "", addr)
+    # resolve if domain name 
+    if any(letter.isalpha() for letter in addr):
+        addr = socket.gethostbyname_ex(addr)[2][0]
+    return addr
+
+
+def install_ctrl_c_handler():
+    loop = asyncio.get_running_loop()
+    main_task = asyncio.current_task()
+    for signal in [SIGINT, SIGTERM]:
+        loop.add_signal_handler(signal, main_task.cancel)
