@@ -106,6 +106,7 @@ async def main():
             tun_reader(tun_interface, ws_to_server),
             tun_writer(tun_interface, ws_to_server)
         )
+        print("disconnected from server")
     except KeyboardInterrupt:
         pass
     except asyncio.CancelledError:

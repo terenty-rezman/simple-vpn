@@ -72,12 +72,12 @@ async def ws_server():
         tun_interface = await create_tun(TUN_IF_NAME, TUN_IF_ADDRESS)
         setup_route_table(TUN_IF_ADDRESS)
 
-        async with websockets.serve(
-                partial(handle_client, tun_interface), 
-                "0.0.0.0", LISTEN_PORT
-            ):
-            print("listening...")
-            await asyncio.Future()  # run forever
+        server = await websockets.serve(
+            partial(handle_client, tun_interface), 
+            "0.0.0.0", LISTEN_PORT
+        )
+        print("listening...")
+        await server.serve_forever()
     except KeyboardInterrupt:
         pass
     except asyncio.CancelledError:
