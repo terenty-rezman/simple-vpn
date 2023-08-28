@@ -16,7 +16,7 @@ TUN_IF_ADDRESS = '10.1.0.1/24'
 
 def setup_route_table(interface_name):
     # enable packet forwarding on host
-    run("sysctl -w net.ipv4.ip_forward=1");
+    run("echo 1 > net.ipv4.ip_forward=1");
 
     run("iptables -t nat -A POSTROUTING -s 10.1.0.0/24 ! -d 10.1.0.0/24 -m comment --comment 'vpndemo' -j MASQUERADE");
     run("iptables -A FORWARD -s 10.1.0.0/24 -m state --state RELATED,ESTABLISHED -j ACCEPT");

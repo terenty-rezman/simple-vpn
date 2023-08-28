@@ -4,6 +4,10 @@ services:
     build: .
     expose:
       - "8888"
+    devices:
+      - "/dev/net/tun"
+    cap_add:
+      - NET_ADMIN
     networks:
       - divid_net
 
