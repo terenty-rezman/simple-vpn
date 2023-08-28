@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Callable
 import subprocess
 import asyncio
 import re
@@ -58,5 +58,6 @@ def resolve_ip_address(addr: str):
 def install_ctrl_c_handler():
     loop = asyncio.get_running_loop()
     main_task = asyncio.current_task()
+
     for signal in [SIGINT, SIGTERM]:
         loop.add_signal_handler(signal, main_task.cancel)

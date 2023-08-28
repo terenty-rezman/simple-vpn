@@ -113,6 +113,7 @@ async def main():
         pass
     finally:
         cleanup_route_table(server_ip_addr)
+        if ws_to_server: await ws_to_server.close()
         print("stopping...")
 
 

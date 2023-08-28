@@ -84,6 +84,7 @@ async def ws_server():
         pass
     finally:
         cleanup_route_table()
+        print("stopping...")
 
 
 if __name__ == "__main__":
