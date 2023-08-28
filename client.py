@@ -5,6 +5,7 @@ Based on: https://github.com/povilasb/iptun/blob/master/iptun/tun.py
 import logging as LOGGER
 import re
 import asyncio
+import sys
 
 import websockets
 from websockets.client import WebSocketClientProtocol
@@ -15,9 +16,9 @@ from tun import create_tun, TUNInterface
 LOGGER.basicConfig(level=LOGGER.INFO)
 
 # connect to ws server
-#SERVER_ADDR = "wss://tech.divid.team/myvpn"
-#SERVER_ADDR = "ws://tech.divid.team:8777"
-SERVER_ADDR = "ws://79.143.31.251:8777"
+SERVER_ADDR = "wss://tech.divid.team/myvpn"
+# SERVER_ADDR = "ws://tech.divid.team:8777"
+# SERVER_ADDR = "ws://79.143.31.251:8777"
 
 # tun interface config
 TUN_IF_NAME = "custom-tunnel"
@@ -116,6 +117,7 @@ async def main():
         cleanup_route_table(server_ip_addr)
         if ws_to_server: await ws_to_server.close()
         print("stopping...")
+        sys.exit(0)
 
 
 if __name__ == '__main__':

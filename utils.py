@@ -39,14 +39,16 @@ def print_packet(packet: Union[IPv4Packet, IPv6Packet], prefix=None):
         print(
             prefix or "", packet.src_s, "->", packet.dst_s, 
             packet[ip.tcp.TCP].flags_t,
-            # parsed_packet.highest_layer.body_bytes or ""
-            packet.len
+            packet.len,
+            packet.highest_layer.body_bytes[:25] or ""
         )
 
 
 def resolve_ip_address(addr: str):
     # remove scheme
     addr = re.sub("^\w*://", "", addr)
+    # remove url path
+    addr = re.sub("/.*", "", addr)
     # remove port
     addr = re.sub(":\d+$", "", addr)
     # resolve if domain name 
