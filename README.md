@@ -11,7 +11,8 @@ About
 - **linux only**
 
 Inspired by [this vpn demo in c by davlxd](https://github.com/davlxd/simple-vpn-demo)
-good read: [simpletun](http://backreference.org/2010/03/26/tuntap-interface-tutorial/)
+
+also good read: [simpletun](http://backreference.org/2010/03/26/tuntap-interface-tutorial/)
 
 Usage
 =====================
