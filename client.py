@@ -24,6 +24,7 @@ TUN_IF_NAME = "custom-tunnel"
 TUN_IF_ADDRESS = '10.1.0.2/24'
 
 
+# route all trafic through the tun
 def setup_route_table(interface_name, server_ip_addr):
     # enable packet forwarding on host
     run("/usr/sbin/sysctl -w net.ipv4.ip_forward=1");

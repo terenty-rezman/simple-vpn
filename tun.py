@@ -18,9 +18,8 @@ class TUNInterface:
         self._address = address
     
     async def init(self):
-        self._tun = await aiofiles.open('/dev/net/tun', "r+b", buffering=0)
-
         # Create TUN interface.
+        self._tun = await aiofiles.open('/dev/net/tun', "r+b", buffering=0)
         descriptor = self._tun.fileno()
 
         ioctl(
@@ -37,6 +36,7 @@ class TUNInterface:
         run(f"/sbin/ip link set dev {self._name} up")
 
     async def read_packet(self) -> bytes:
+        # read at most MTU size packet, if read less incomplete packet are read !
         packet = await self._tun.read(MTU)
         return packet
 

@@ -43,6 +43,7 @@ async def handle_client(tun_interface: TUNInterface, websocket: WebSocketServerP
     print("client disconnected")
 
 
+# receive packets from client, write them to tun
 async def tun_writer(tun_interface: TUNInterface, ws_socket: WebSocketServerProtocol):
     while True:
         try:
@@ -54,6 +55,7 @@ async def tun_writer(tun_interface: TUNInterface, ws_socket: WebSocketServerProt
         await tun_interface.write_packet(packet)
 
 
+# read packets from tun, send them to client
 async def tun_reader(tun_interface: TUNInterface, ws_socket: WebSocketServerProtocol):
     while True:
         packet = await tun_interface.read_packet()
