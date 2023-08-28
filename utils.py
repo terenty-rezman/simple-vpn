@@ -2,6 +2,7 @@ from typing import Union
 import subprocess
 import asyncio
 import re
+import socket
 from signal import SIGINT, SIGTERM
 
 from pypacker.layer3.ip import IP as IPv4Packet
