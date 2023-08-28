@@ -22,6 +22,7 @@ def setup_route_table(interface_name):
     run("iptables -A FORWARD -s 10.1.0.0/24 -m state --state RELATED,ESTABLISHED -j ACCEPT");
     run("iptables -A FORWARD -d 10.1.0.0/24 -j ACCEPT");
 
+    # NOTE: uncomment this if docker is installed on server !
     # run("iptables -I DOCKER-USER -j ACCEPT");
 
 
@@ -31,6 +32,7 @@ def cleanup_route_table():
     run("iptables -D FORWARD -s 10.1.0.0/24 -m state --state RELATED,ESTABLISHED -j ACCEPT");
     run("iptables -D FORWARD -d 10.1.0.0/24 -j ACCEPT");
 
+    # NOTE: uncomment this if docker is installed on server !
     # run("iptables -D DOCKER-USER -j ACCEPT");
 
 
