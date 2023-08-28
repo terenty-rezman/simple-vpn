@@ -58,7 +58,10 @@ def cleanup_route_table(server_ip_address):
 
 async def tun_writer(tun_interface: TUNInterface, ws_socket: WebSocketClientProtocol):
     while True:
-        packet = await ws_socket.recv()
+        try:
+            packet = await ws_socket.recv()
+        except websockets.ConnectionClosed:
+            break
         parsed_packet = parse_packet(packet)
         print_packet(parsed_packet, "SERVER:")
         await tun_interface.write_packet(packet)
@@ -69,7 +72,20 @@ async def tun_reader(tun_interface: TUNInterface, ws_socket: WebSocketClientProt
         packet = await tun_interface.read_packet()
         parsed_packet = parse_packet(packet)
         print_packet(parsed_packet, "TUN:")
-        await ws_socket.send(packet)
+        try:
+            await ws_socket.send(packet)
+        except websockets.ConnectionClosed:
+            break
+
+
+async def connect_to_server(server_address: str):
+    print("connecting...")
+    try:
+        ws = await websockets.connect(server_address)
+        return ws
+    except Exception as e:
+        print("ERROR:", e)
+        pass
 
 
 async def main():
@@ -81,7 +97,9 @@ async def main():
         tun_interface = await create_tun(TUN_IF_NAME, TUN_IF_ADDRESS)
         setup_route_table(TUN_IF_NAME, server_ip_addr)
 
-        ws_to_server = await websockets.connect(SERVER_ADDR)
+        ws_to_server = await connect_to_server(SERVER_ADDR) 
+        if not ws_to_server: 
+            return
         print("connected to server")
 
         await asyncio.gather(

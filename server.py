@@ -40,11 +40,15 @@ async def handle_client(tun_interface: TUNInterface, websocket: WebSocketServerP
         tun_reader(tun_interface, websocket),
         tun_writer(tun_interface, websocket)
     )
+    print("client disconnected")
 
 
 async def tun_writer(tun_interface: TUNInterface, ws_socket: WebSocketServerProtocol):
     while True:
-        packet = await ws_socket.recv()
+        try:
+            packet = await ws_socket.recv()
+        except websockets.ConnectionClosed:
+            break
         parsed_packet = parse_packet(packet)
         print_packet(parsed_packet, "CLIENT:")
         await tun_interface.write_packet(packet)
@@ -55,7 +59,10 @@ async def tun_reader(tun_interface: TUNInterface, ws_socket: WebSocketServerProt
         packet = await tun_interface.read_packet()
         parsed_packet = parse_packet(packet)
         print_packet(parsed_packet, "TUN:")
-        await ws_socket.send(packet)
+        try:
+            await ws_socket.send(packet)
+        except websockets.ConnectionClosed:
+            break
 
 
 async def ws_server():
