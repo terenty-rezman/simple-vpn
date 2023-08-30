@@ -5,8 +5,8 @@ About
 - Client + server
 - Client routes all its traffic through `tun`
 - Uses `websockets` as transport
-- Can be used behind nginx
-- No custom encryption, but builtin `tls` if websockets connetion was established over `HTTPS`
+- Can be used behind nginx for ssl
+- No custom encryption, but builtin `tls` if websockets connection was established over `HTTPS` via nginx
 - No authorization
 - **linux only**
 
